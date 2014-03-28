@@ -26,90 +26,90 @@ public class NonBlockingStatsDClientTest {
     @Test(timeout=5000L) public void
     sends_counter_value_to_statsd() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.count("mycount", 24);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mycount:24|c"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_value_to_statsd_with_null_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.count("mycount", 24, (java.lang.String[]) null);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mycount:24|c"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_value_to_statsd_with_empty_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.count("mycount", 24);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mycount:24|c"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_value_to_statsd_with_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.count("mycount", 24, "foo:bar", "baz");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mycount:24|c|#baz,foo:bar"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_increment_to_statsd() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.incrementCounter("myinc");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.myinc:1|c"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_increment_to_statsd_with_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.incrementCounter("myinc", "foo:bar", "baz");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.myinc:1|c|#baz,foo:bar"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_decrement_to_statsd() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.decrementCounter("mydec");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mydec:-1|c"));
     }
 
     @Test(timeout=5000L) public void
     sends_counter_decrement_to_statsd_with_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.decrementCounter("mydec", "foo:bar", "baz");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mydec:-1|c|#baz,foo:bar"));
     }
 
     @Test(timeout=5000L) public void
     sends_gauge_to_statsd() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.recordGaugeValue("mygauge", 423);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mygauge:423|g"));
     }
 
@@ -136,30 +136,30 @@ public class NonBlockingStatsDClientTest {
     @Test(timeout=5000L) public void
     sends_double_gauge_to_statsd() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.recordGaugeValue("mygauge", 0.423);
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mygauge:0.423|g"));
     }
 
     @Test(timeout=5000L) public void
     sends_gauge_to_statsd_with_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.recordGaugeValue("mygauge", 423, "foo:bar", "baz");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mygauge:423|g|#baz,foo:bar"));
     }
 
     @Test(timeout=5000L) public void
     sends_double_gauge_to_statsd_with_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.recordGaugeValue("mygauge", 0.423, "foo:bar", "baz");
         server.waitForMessage();
-        
+
         assertThat(server.messagesReceived(), contains("my.prefix.mygauge:0.423|g|#baz,foo:bar"));
     }
 
@@ -206,11 +206,11 @@ public class NonBlockingStatsDClientTest {
     @Test(timeout=5000L) public void
     sends_timer_to_statsd() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.recordExecutionTime("mytime", 123);
         server.waitForMessage();
-        
-        assertThat(server.messagesReceived(), contains("my.prefix.mytime:0.123|h"));
+
+        assertThat(server.messagesReceived(), contains("my.prefix.mytime:123|ms"));
     }
 
     /**
@@ -231,7 +231,7 @@ public class NonBlockingStatsDClientTest {
             client.recordExecutionTime("mytime", 123, "foo:bar", "baz");
             server.waitForMessage();
 
-            assertThat(server.messagesReceived(), contains("my.prefix.mytime:0.123|h|#baz,foo:bar"));
+            assertThat(server.messagesReceived(), contains("my.prefix.mytime:123|ms|#baz,foo:bar"));
         } finally {
             // reset the default Locale in case changing it has side-effects
             Locale.setDefault(originalDefaultLocale);
@@ -242,11 +242,11 @@ public class NonBlockingStatsDClientTest {
     @Test(timeout=5000L) public void
     sends_timer_to_statsd_with_tags() throws Exception {
         final DummyStatsDServer server = new DummyStatsDServer(STATSD_SERVER_PORT);
-        
+
         client.recordExecutionTime("mytime", 123, "foo:bar", "baz");
         server.waitForMessage();
-        
-        assertThat(server.messagesReceived(), contains("my.prefix.mytime:0.123|h|#baz,foo:bar"));
+
+        assertThat(server.messagesReceived(), contains("my.prefix.mytime:123|ms|#baz,foo:bar"));
     }
 
 
@@ -307,14 +307,14 @@ public class NonBlockingStatsDClientTest {
                 }
             }).start();
         }
-        
+
         public void waitForMessage() {
             while (messagesReceived.isEmpty()) {
                 try {
                     Thread.sleep(50L);
                 } catch (InterruptedException e) {}}
         }
-        
+
         public List<String> messagesReceived() {
             return new ArrayList<String>(messagesReceived);
         }
