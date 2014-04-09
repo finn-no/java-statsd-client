@@ -1,26 +1,23 @@
 package com.timgroup.statsd;
 
-import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.text.NumberFormat;
 import java.util.Locale;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
  * A simple StatsD client implementation facilitating metrics recording.
- *
+ * 
  * <p>Upon instantiation, this client will establish a socket connection to a StatsD instance
  * running on the specified host and port. Metrics are then sent over this connection as they are
  * received by the client.
  * </p>
- *
+ * 
  * <p>Three key methods are provided for the submission of data-points for the application under
  * scrutiny:
  * <ul>
@@ -33,16 +30,14 @@ import java.util.concurrent.TimeUnit;
  * IO operations being carried out in a separate thread. Furthermore, these methods are guaranteed
  * not to throw an exception which may disrupt application execution.
  * </p>
- *
+ * 
  * <p>As part of a clean system shutdown, the {@link #stop()} method should be invoked
  * on any StatsD clients.</p>
- *
+ * 
  * @author Tom Denley
  *
  */
 public final class NonBlockingStatsDClient implements StatsDClient {
-
-    private static final int PACKET_SIZE_BYTES = 1500;
 
     private static final StatsDClientErrorHandler NO_OP_HANDLER = new StatsDClientErrorHandler() {
         @Override public void handle(Exception e) { /* No-op */ }
@@ -68,8 +63,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     };
 
     private final String prefix;
-    private final DatagramChannel clientChannel;
-    private final InetSocketAddress address;
+    private final DatagramSocket clientSocket;
     private final StatsDClientErrorHandler handler;
     private final String constantTagsRendered;
 
@@ -82,8 +76,6 @@ public final class NonBlockingStatsDClient implements StatsDClient {
             return result;
         }
     });
-
-    private final BlockingQueue<String> queue = new LinkedBlockingQueue<String>();
 
     /**
      * Create a new StatsD client communicating with a StatsD instance on the
@@ -117,7 +109,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      * be established. Once a client has been instantiated in this way, all
      * exceptions thrown during subsequent usage are consumed, guaranteeing
      * that failures in metrics will not affect normal code execution.
-     *
+     * 
      * @param prefix
      *     the prefix to apply to keys sent via this client
      * @param hostname
@@ -143,7 +135,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      * exceptions thrown during subsequent usage are passed to the specified
      * handler and then consumed, guaranteeing that failures in metrics will
      * not affect normal code execution.
-     *
+     * 
      * @param prefix
      *     the prefix to apply to keys sent via this client
      * @param hostname
@@ -177,12 +169,11 @@ public final class NonBlockingStatsDClient implements StatsDClient {
         }
 
         try {
-            this.clientChannel = DatagramChannel.open();
-            this.address = new InetSocketAddress(hostname, port);
+            this.clientSocket = new DatagramSocket();
+            this.clientSocket.connect(new InetSocketAddress(hostname, port));
         } catch (Exception e) {
             throw new StatsDClientException("Failed to start StatsD client", e);
         }
-        this.executor.submit(new QueueConsumer());
     }
 
     /**
@@ -199,13 +190,8 @@ public final class NonBlockingStatsDClient implements StatsDClient {
             handler.handle(e);
         }
         finally {
-            if (clientChannel != null) {
-                try {
-                    clientChannel.close();
-                }
-                catch (IOException e) {
-                    handler.handle(e);
-                }
+            if (clientSocket != null) {
+                clientSocket.close();
             }
         }
     }
@@ -246,9 +232,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Adjusts the specified counter by a given delta.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the counter to adjust
      * @param delta
@@ -263,9 +249,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Increments the specified counter by one.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the counter to increment
      * @param tags
@@ -277,7 +263,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     }
 
     /**
-     * Convenience method equivalent to {@link #incrementCounter(String, String[])}.
+     * Convenience method equivalent to {@link #incrementCounter(String, String[])}. 
      */
     @Override
     public void increment(String aspect, String... tags) {
@@ -286,9 +272,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Decrements the specified counter by one.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the counter to decrement
      * @param tags
@@ -300,7 +286,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     }
 
     /**
-     * Convenience method equivalent to {@link #decrementCounter(String, String[])}.
+     * Convenience method equivalent to {@link #decrementCounter(String, String[])}. 
      */
     @Override
     public void decrement(String aspect, String... tags) {
@@ -309,9 +295,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Records the latest fixed value for the specified named gauge.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the gauge
      * @param value
@@ -337,9 +323,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Records the latest fixed value for the specified named gauge.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the gauge
      * @param value
@@ -353,7 +339,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     }
 
     /**
-     * Convenience method equivalent to {@link #recordGaugeValue(String, int, String[])}.
+     * Convenience method equivalent to {@link #recordGaugeValue(String, long, String[])}.
      */
     @Override
     public void gauge(String aspect, int value, String... tags) {
@@ -362,9 +348,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Records an execution time in milliseconds for the specified named operation.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the timed operation
      * @param timeInMs
@@ -414,9 +400,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
     /**
      * Records a value for the specified named histogram.
-     *
+     * 
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
-     *
+     * 
      * @param aspect
      *     the name of the histogram
      * @param value
@@ -430,61 +416,33 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     }
 
     /**
-     * Convenience method equivalent to {@link #recordHistogramValue(String, int, String[])}.
+     * Convenience method equivalent to {@link #recordHistogramValue(String, long, String[])}.
      */
     @Override
     public void histogram(String aspect, int value, String... tags) {
         recordHistogramValue(aspect, value, tags);
     }
 
-    private void send(String message) {
-        queue.offer(message);
+    private void send(final String message) {
+        try {
+            executor.execute(new Runnable() {
+                @Override public void run() {
+                    blockingSend(message);
+                }
+            });
+        }
+        catch (Exception e) {
+            handler.handle(e);
+        }
     }
 
-    private class QueueConsumer implements Runnable {
-        private final ByteBuffer sendBuffer = ByteBuffer.allocate(PACKET_SIZE_BYTES);
-
-        @Override public void run() {
-            while(!executor.isShutdown()) {
-                try {
-                    String message = queue.poll(1, TimeUnit.SECONDS);
-                    if(null != message) {
-                        byte[] data = message.getBytes();
-                        if(sendBuffer.remaining() < (data.length + 1)) {
-                            blockingSend();
-                        }
-                        if(sendBuffer.position() > 0) {
-                            sendBuffer.put( (byte) '\n');
-                        }
-                        sendBuffer.put(data);
-                        if(null == queue.peek()) {
-                            blockingSend();
-                        }
-                    }
-                } catch (Exception e) {
-                    handler.handle(e);
-                }
-            }
-        }
-
-        private void blockingSend() throws IOException {
-            int sizeOfBuffer = sendBuffer.position();
-            sendBuffer.flip();
-            int sentBytes = clientChannel.send(sendBuffer, address);
-            sendBuffer.limit(sendBuffer.capacity());
-            sendBuffer.rewind();
-
-            if (sizeOfBuffer != sentBytes) {
-                handler.handle(
-                        new IOException(
-                            String.format(
-                                "Could not send entirely stat %s to host %s:%d. Only sent %d bytes out of %d bytes",
-                                sendBuffer.toString(),
-                                address.getHostName(),
-                                address.getPort(),
-                                sentBytes,
-                                sizeOfBuffer)));
-            }
+    private void blockingSend(String message) {
+        try {
+            final byte[] sendData = message.getBytes();
+            final DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length);
+            clientSocket.send(sendPacket);
+        } catch (Exception e) {
+            handler.handle(e);
         }
     }
 }
