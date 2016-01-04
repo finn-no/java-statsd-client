@@ -5,6 +5,8 @@ A statsd client library implemented in Java.
 Allows for Java applications to easily communicate with statsd.
 Built with LMAX disruptor for performance.
 
+NOTE: In some instances, this implementation can lose events silently.
+
 This version is forked from the upstream [java-dogstatsd-client](https://github.com/indeedeng/java-dogstatsd-client) project.
 
 This version ensures compatibility with vanilla statsd.
