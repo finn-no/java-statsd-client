@@ -1,12 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>no.finn</groupId>
     <artifactId>statsd-lmax-disruptor-client</artifactId>
     <packaging>jar</packaging>
     <name>statsd-lmax-disruptor-client</name>
-    <version>2.0.11-SNAPSHOT</version>
+    <version>2.0.11</version>
     <description>a java statsd client library built with LMAX disruptor for performance</description>
     <url>https://github.com/finn-no/statsd-lmax-disruptor-client</url>
 
@@ -29,7 +28,8 @@
         <url>http://github.com/finn-no/statsd-lmax-disruptor-client</url>
         <connection>scm:git:git://github.com/finn-no/statsd-lmax-disruptor-client.git</connection>
         <developerConnection>scm:git:git@github.com:finn-no/statsd-lmax-disruptor-client.git</developerConnection>
-    </scm>
+      <tag>statsd-lmax-disruptor-client-2.0.11</tag>
+  </scm>
 
     <build>
         <plugins>
