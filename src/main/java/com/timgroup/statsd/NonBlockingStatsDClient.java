@@ -91,12 +91,14 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     private final String prefix;
     private final DatagramChannel clientChannel;
     private final InetSocketAddress address;
-    private final StatsDClientErrorHandler handler;
+    private final StatsDClientErrorHandler errorHandler;
     private final String constantTagsRendered;
 
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         final ThreadFactory delegate = Executors.defaultThreadFactory();
-        @Override public Thread newThread(Runnable r) {
+
+        @Override
+        public Thread newThread(Runnable r) {
             Thread result = delegate.newThread(r);
             result.setName("StatsD-disruptor-" + result.getName());
             result.setDaemon(true);
@@ -179,19 +181,38 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *     if the client could not be started
      */
     public NonBlockingStatsDClient(String prefix, String hostname, int port, String[] constantTags, StatsDClientErrorHandler errorHandler) throws StatsDClientException {
-        if(prefix != null && prefix.length() > 0) {
+        this(prefix, hostname, port, constantTags, errorHandler, null);
+    }
+
+    /**
+     * Create a new StatsD client communicating with a StatsD instance on the
+     * specified host and port. All messages send via this client will have
+     * their keys prefixed with the specified string. The new client will
+     * attempt to open a connection to the StatsD server immediately upon
+     * instantiation, and may throw an exception if that a connection cannot
+     * be established. Once a client has been instantiated in this way, all
+     * exceptions thrown during subsequent usage are passed to the specified
+     * errorHandler and then consumed, guaranteeing that failures in metrics will
+     * not affect normal code execution.
+     *
+     * @param prefix       the prefix to apply to keys sent via this client
+     * @param hostname     the host name of the targeted StatsD server
+     * @param port         the port of the targeted StatsD server
+     * @param constantTags tags to be added to all content sent
+     * @param errorHandler errorHandler to use when an exception occurs during usage
+     * @param handler      eventhandler to use when processing events
+     * @throws StatsDClientException if the client could not be started
+     */
+    @SuppressWarnings("unchecked")
+    public NonBlockingStatsDClient(String prefix, String hostname, int port, String[] constantTags, StatsDClientErrorHandler errorHandler, EventHandler<Event> handler) throws StatsDClientException {
+        if (prefix != null && prefix.length() > 0) {
             this.prefix = String.format("%s.", prefix);
         } else {
             this.prefix = "";
         }
-        this.handler = errorHandler;
+        this.errorHandler = errorHandler;
 
-        /* Empty list should be null for faster comparison */
-        if(constantTags != null && constantTags.length == 0) {
-            constantTags = null;
-        }
-
-        if(constantTags != null) {
+        if (constantTags != null && constantTags.length > 0) {
             this.constantTagsRendered = tagString(constantTags, null);
         } else {
             this.constantTagsRendered = null;
@@ -204,8 +225,8 @@ public final class NonBlockingStatsDClient implements StatsDClient {
             throw new StatsDClientException("Failed to start StatsD client", e);
         }
 
-        disruptor.handleEventsWith(new Handler());
-        disruptor.handleExceptionsWith(new DisruptorExceptionHandler(this.handler));
+        disruptor.handleExceptionsWith(new DisruptorExceptionHandler(this.errorHandler));
+        disruptor.handleEventsWith(handler != null ? handler : new Handler());
         disruptor.start();
     }
 
@@ -219,17 +240,14 @@ public final class NonBlockingStatsDClient implements StatsDClient {
             disruptor.shutdown();
             executor.shutdown();
             executor.awaitTermination(30, TimeUnit.SECONDS);
-        }
-        catch (Exception e) {
-            handler.handle(e);
-        }
-        finally {
+        } catch (Exception e) {
+            errorHandler.handle(e);
+        } finally {
             if (clientChannel != null) {
                 try {
                     clientChannel.close();
-                }
-                catch (IOException e) {
-                    handler.handle(e);
+                } catch (IOException e) {
+                    errorHandler.handle(e);
                 }
             }
         }
@@ -463,12 +481,12 @@ public final class NonBlockingStatsDClient implements StatsDClient {
     }
 
     private void send(String message) {
-        if(!disruptor.getRingBuffer().tryPublishEvent(TRANSLATOR, message)) {
-            handler.handle(InsufficientCapacityException.INSTANCE);
+        if (!disruptor.getRingBuffer().tryPublishEvent(TRANSLATOR, message)) {
+            errorHandler.handle(InsufficientCapacityException.INSTANCE);
         }
     }
 
-    private static class Event {
+    static class Event {
 
         private String value;
 
@@ -511,15 +529,15 @@ public final class NonBlockingStatsDClient implements StatsDClient {
             sendBuffer.clear();
 
             if (sizeOfBuffer != sentBytes) {
-                handler.handle(
+                errorHandler.handle(
                         new IOException(
-                            String.format(
-                                "Could not send entirely stat %s to host %s:%d. Only sent %d bytes out of %d bytes",
-                                sendBuffer.toString(),
-                                address.getHostName(),
-                                address.getPort(),
-                                sentBytes,
-                                sizeOfBuffer)));
+                                String.format(
+                                        "Could not send entirely stat %s to host %s:%d. Only sent %d bytes out of %d bytes",
+                                        sendBuffer.toString(),
+                                        address.getHostName(),
+                                        address.getPort(),
+                                        sentBytes,
+                                        sizeOfBuffer)));
             }
         }
     }
@@ -530,7 +548,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
         private final StatsDClientErrorHandler exceptionHandler;
 
         public DisruptorExceptionHandler(StatsDClientErrorHandler handler) {
-           this.exceptionHandler = handler;
+            this.exceptionHandler = handler;
         }
 
         @Override

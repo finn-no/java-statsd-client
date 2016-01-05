@@ -1,24 +1,42 @@
 package com.timgroup.statsd;
 
 import java.net.SocketException;
+import java.util.Locale;
+
+import com.lmax.disruptor.EventHandler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Locale;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
 
+@RunWith(MockitoJUnitRunner.class)
 public class NonBlockingStatsDClientTest {
 
     private static final int STATSD_SERVER_PORT = 17254;
-    private final NonBlockingStatsDClient client = new NonBlockingStatsDClient("my.prefix", "localhost", STATSD_SERVER_PORT);
+    private NonBlockingStatsDClient client;
     private DummyStatsDServer server;
 
+    @Mock
+    private StatsDClientErrorHandler mockErrorHandler;
+    @Mock
+    private EventHandler<NonBlockingStatsDClient.Event> mockHandler;
+
     @Before
-    public void start() throws SocketException {
+    public void start() throws SocketException, InterruptedException {
+        Thread.sleep(10); // Allow previous test to exit cleanly before trying to start server
         server = new DummyStatsDServer(STATSD_SERVER_PORT);
+        client = new NonBlockingStatsDClient("my.prefix", "localhost", STATSD_SERVER_PORT);
     }
 
     @After
@@ -26,6 +44,19 @@ public class NonBlockingStatsDClientTest {
         client.stop();
         server.close();
     }
+
+    @Test(timeout=5000L)
+    public void handles_exception_properly() throws Exception {
+        client.stop();
+        client = new NonBlockingStatsDClient("my.prefix", "localhost", STATSD_SERVER_PORT, null, mockErrorHandler, mockHandler);
+        Exception e = new SocketException();
+
+        doThrow(e).when(mockHandler).onEvent(any(NonBlockingStatsDClient.Event.class), anyLong(), anyBoolean());
+        client.count("mycount", 24);
+
+        verify(mockErrorHandler, timeout(100)).handle(e);
+    }
+
 
     @Test(timeout=5000L) public void
     sends_counter_value_to_statsd() throws Exception {
