@@ -25,34 +25,34 @@ import com.lmax.disruptor.dsl.Disruptor;
  *
  * <p>Upon instantiation, this client will establish a socket connection to a StatsD instance
  * running on the specified host and port. Metrics are then sent over this connection as they are
- * received by the client.
- * </p>
+ * received by the client.</p>
  *
  * <p>Three key methods are provided for the submission of data-points for the application under
- * scrutiny:
+ * scrutiny:</p>
+ *
  * <ul>
- *   <li>{@link #incrementCounter} - adds one to the value of the specified named counter</li>
- *   <li>{@link #recordGaugeValue} - records the latest fixed value for the specified named gauge</li>
- *   <li>{@link #recordExecutionTime} - records an execution time in milliseconds for the specified named operation</li>
- *   <li>{@link #recordHistogramValue} - records a value, to be tracked with average, maximum, and percentiles</li>
+ *  <li>{@link #incrementCounter} - adds one to the value of the specified named counter</li>
+ *  <li>{@link #recordGaugeValue} - records the latest fixed value for the specified named gauge</li>
+ *  <li>{@link #recordExecutionTime} - records an execution time in milliseconds for the specified named operation</li>
+ *  <li>{@link #recordHistogramValue} - records a value, to be tracked with average, maximum, and percentiles</li>
  * </ul>
- * From the perspective of the application, these methods are non-blocking, with the resulting
+ *
+ * <p>From the perspective of the application, these methods are non-blocking, with the resulting
  * IO operations being carried out in a separate thread. Furthermore, these methods are guaranteed
- * not to throw an exception which may disrupt application execution.
- * </p>
+ * not to throw an exception which may disrupt application execution.</p>
  *
  * <p>As part of a clean system shutdown, the {@link #stop()} method should be invoked
  * on any StatsD clients.</p>
  *
  * @author Tom Denley
- *
  */
 public final class NonBlockingStatsDClient implements StatsDClient {
 
     private static final int PACKET_SIZE_BYTES = 1500;
 
     private static final StatsDClientErrorHandler NO_OP_HANDLER = new StatsDClientErrorHandler() {
-        @Override public void handle(Exception e) { /* No-op */ }
+        @Override
+        public void handle(Exception e) { /* No-op */ }
     };
 
     /**
@@ -81,7 +81,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
         }
     };
 
-    private static final EventTranslatorOneArg<Event,String> TRANSLATOR = new EventTranslatorOneArg<Event,String>() {
+    private static final EventTranslatorOneArg<Event, String> TRANSLATOR = new EventTranslatorOneArg<Event, String>() {
         @Override
         public void translateTo(Event event, long sequence, String msg) {
             event.setValue(msg);
@@ -118,14 +118,10 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      * exceptions thrown during subsequent usage are consumed, guaranteeing
      * that failures in metrics will not affect normal code execution.
      *
-     * @param prefix
-     *     the prefix to apply to keys sent via this client
-     * @param hostname
-     *     the host name of the targeted StatsD server
-     * @param port
-     *     the port of the targeted StatsD server
-     * @throws StatsDClientException
-     *     if the client could not be started
+     * @param prefix   the prefix to apply to keys sent via this client
+     * @param hostname the host name of the targeted StatsD server
+     * @param port     the port of the targeted StatsD server
+     * @throws StatsDClientException if the client could not be started
      */
     public NonBlockingStatsDClient(String prefix, String hostname, int port) throws StatsDClientException {
         this(prefix, hostname, port, null, NO_OP_HANDLER);
@@ -141,16 +137,11 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      * exceptions thrown during subsequent usage are consumed, guaranteeing
      * that failures in metrics will not affect normal code execution.
      *
-     * @param prefix
-     *     the prefix to apply to keys sent via this client
-     * @param hostname
-     *     the host name of the targeted StatsD server
-     * @param port
-     *     the port of the targeted StatsD server
-     * @param constantTags
-     *     tags to be added to all content sent
-     * @throws StatsDClientException
-     *     if the client could not be started
+     * @param prefix       the prefix to apply to keys sent via this client
+     * @param hostname     the host name of the targeted StatsD server
+     * @param port         the port of the targeted StatsD server
+     * @param constantTags tags to be added to all content sent
+     * @throws StatsDClientException if the client could not be started
      */
     public NonBlockingStatsDClient(String prefix, String hostname, int port, String[] constantTags) throws StatsDClientException {
         this(prefix, hostname, port, constantTags, NO_OP_HANDLER);
@@ -167,18 +158,12 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      * handler and then consumed, guaranteeing that failures in metrics will
      * not affect normal code execution.
      *
-     * @param prefix
-     *     the prefix to apply to keys sent via this client
-     * @param hostname
-     *     the host name of the targeted StatsD server
-     * @param port
-     *     the port of the targeted StatsD server
-     * @param constantTags
-     *     tags to be added to all content sent
-     * @param errorHandler
-     *     handler to use when an exception occurs during usage
-     * @throws StatsDClientException
-     *     if the client could not be started
+     * @param prefix       the prefix to apply to keys sent via this client
+     * @param hostname     the host name of the targeted StatsD server
+     * @param port         the port of the targeted StatsD server
+     * @param constantTags tags to be added to all content sent
+     * @param errorHandler handler to use when an exception occurs during usage
+     * @throws StatsDClientException if the client could not be started
      */
     public NonBlockingStatsDClient(String prefix, String hostname, int port, String[] constantTags, StatsDClientErrorHandler errorHandler) throws StatsDClientException {
         this(prefix, hostname, port, constantTags, errorHandler, null);
@@ -258,22 +243,22 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      */
     static String tagString(final String[] tags, final String tagPrefix) {
         StringBuilder sb;
-        if(tagPrefix != null) {
-            if(tags == null || tags.length == 0) {
+        if (tagPrefix != null) {
+            if (tags == null || tags.length == 0) {
                 return tagPrefix;
             }
             sb = new StringBuilder(tagPrefix);
             sb.append(",");
         } else {
-            if(tags == null || tags.length == 0) {
+            if (tags == null || tags.length == 0) {
                 return "";
             }
             sb = new StringBuilder("|#");
         }
 
-        for(int n=tags.length - 1; n>=0; n--) {
+        for (int n = tags.length - 1; n >= 0; n--) {
             sb.append(tags[n]);
-            if(n > 0) {
+            if (n > 0) {
                 sb.append(",");
             }
         }
@@ -292,12 +277,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the counter to adjust
-     * @param delta
-     *     the amount to adjust the counter by
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the counter to adjust
+     * @param delta  the amount to adjust the counter by
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void count(String aspect, int delta, String... tags) {
@@ -309,10 +291,8 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the counter to increment
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the counter to increment
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void incrementCounter(String aspect, String... tags) {
@@ -332,10 +312,8 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the counter to decrement
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the counter to decrement
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void decrementCounter(String aspect, String... tags) {
@@ -355,12 +333,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the gauge
-     * @param value
-     *     the new reading of the gauge
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the gauge
+     * @param value  the new reading of the gauge
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void recordGaugeValue(String aspect, double value, String... tags) {
@@ -383,12 +358,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the gauge
-     * @param value
-     *     the new reading of the gauge
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the gauge
+     * @param value  the new reading of the gauge
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void recordGaugeValue(String aspect, int value, String... tags) {
@@ -408,12 +380,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the timed operation
-     * @param timeInMs
-     *     the time in milliseconds
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect   the name of the timed operation
+     * @param timeInMs the time in milliseconds
+     * @param tags     array of tags to be added to the data
      */
     @Override
     public void recordExecutionTime(String aspect, long timeInMs, String... tags) {
@@ -433,12 +402,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the histogram
-     * @param value
-     *     the value to be incorporated in the histogram
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the histogram
+     * @param value  the value to be incorporated in the histogram
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void recordHistogramValue(String aspect, double value, String... tags) {
@@ -460,12 +426,9 @@ public final class NonBlockingStatsDClient implements StatsDClient {
      *
      * <p>This method is non-blocking and is guaranteed not to throw an exception.</p>
      *
-     * @param aspect
-     *     the name of the histogram
-     * @param value
-     *     the value to be incorporated in the histogram
-     * @param tags
-     *     array of tags to be added to the data
+     * @param aspect the name of the histogram
+     * @param value  the value to be incorporated in the histogram
+     * @param tags   array of tags to be added to the data
      */
     @Override
     public void recordHistogramValue(String aspect, int value, String... tags) {
@@ -508,16 +471,16 @@ public final class NonBlockingStatsDClient implements StatsDClient {
         public void onEvent(Event event, long sequence, boolean batchEnd) throws Exception {
             String message = event.value;
             byte[] data = message.getBytes();
-            if(sendBuffer.remaining() < (data.length + 1)) {
+            if (sendBuffer.remaining() < (data.length + 1)) {
                 flush();
             }
-            if(sendBuffer.position() > 0) {
-                sendBuffer.put( (byte) '\n');
+            if (sendBuffer.position() > 0) {
+                sendBuffer.put((byte) '\n');
             }
             sendBuffer.put(
                     data.length > sendBuffer.remaining() ? Arrays.copyOfRange(data, 0, sendBuffer.remaining()) : data);
 
-            if(batchEnd || 0 == sendBuffer.remaining()) {
+            if (batchEnd || 0 == sendBuffer.remaining()) {
                 flush();
             }
         }
@@ -553,7 +516,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
         @Override
         public void handleEventException(Throwable ex, long sequence, Object event) {
-            if(ex instanceof Exception) {
+            if (ex instanceof Exception) {
                 exceptionHandler.handle((Exception) ex);
             } else {
                 throwableHandler.handleEventException(ex, sequence, event);
@@ -562,7 +525,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
         @Override
         public void handleOnStartException(Throwable ex) {
-            if(ex instanceof Exception) {
+            if (ex instanceof Exception) {
                 exceptionHandler.handle((Exception) ex);
             } else {
                 throwableHandler.handleOnStartException(ex);
@@ -571,7 +534,7 @@ public final class NonBlockingStatsDClient implements StatsDClient {
 
         @Override
         public void handleOnShutdownException(Throwable ex) {
-            if(ex instanceof Exception) {
+            if (ex instanceof Exception) {
                 exceptionHandler.handle((Exception) ex);
             } else {
                 throwableHandler.handleOnShutdownException(ex);
