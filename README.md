@@ -23,6 +23,18 @@ You need to build the project off the release tag and upload it to your own mave
 </dependency>
 ```
 
+Making a release for FINN
+-------------------------
+
+The project is configured to enable deploying a version to the FINN internal repos when
+doing a release, to make life a little easier. To use this, perpare and perform the release
+using the `finn-internal` profile.
+
+```
+$ mvn release:prepare -Pfinn-internal
+$ mvn release:perform -Pfinn-internal
+```
+
 Usage
 -----
 ```java
@@ -38,14 +50,14 @@ public class Foo {
     new String[] {"tag:value"}            /* DataDog extension: Constant tags, always applied */
   );
 
-  public static final void main(String[] args) {
+  public static void main(String[] args) {
     statsd.incrementCounter("foo");
     statsd.recordExecutionTime("bag", 25);
     statsd.recordGaugeValue("bar", 100);
 
     statsd.recordGaugeValue("baz", 0.01); /* DataDog extension: support for floating-point gauges */
-    statsd.recordHistogram("qux", 15)     /* DataDog extension: histograms */
-    statsd.recordHistogram("qux", 15.5)   /* ...also floating-point */
+    statsd.recordHistogram("qux", 15);     /* DataDog extension: histograms */
+    statsd.recordHistogram("qux", 15.5);   /* ...also floating-point */
   }
 }
 ```
