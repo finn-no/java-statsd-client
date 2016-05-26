@@ -20,7 +20,7 @@ final class DummyStatsDServer {
             public void run() {
                 while(!server.isClosed()) {
                     try {
-                        final DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
+                        final DatagramPacket packet = new DatagramPacket(new byte[1400], 1400);
                         server.receive(packet);
                         for(String msg : new String(packet.getData()).split("\n")) {
                             messagesReceived.add(msg.trim());

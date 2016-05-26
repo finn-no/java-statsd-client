@@ -48,7 +48,7 @@ import com.lmax.disruptor.dsl.Disruptor;
  */
 public final class NonBlockingStatsDClient implements StatsDClient {
 
-    private static final int PACKET_SIZE_BYTES = 1500;
+    private static final int PACKET_SIZE_BYTES = 1400;
 
     private static final StatsDClientErrorHandler NO_OP_HANDLER = new StatsDClientErrorHandler() {
         @Override
